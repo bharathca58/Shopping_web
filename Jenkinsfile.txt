@@ -1,0 +1,60 @@
+pipeline {
+    agent { label "agentA" }
+    
+    triggers {
+        pollSCM('* * * * *')
+    }    
+
+    stages {
+        stage('clone_project') {
+            steps {
+                echo 'clone project'
+                git 'https://github.com/bharathca58/Shopping_web.git'
+            }
+        }
+        stage('build_project') {
+            steps {
+                echo 'build_projectA'
+                sh 'yum install maven -y'
+                sh 'mvn -Dmaven.test.failure.ignore=true install'
+            }
+        } 
+        stage('Docker_build') {
+            steps {
+                echo 'Docker build_project'
+                sh 'docker build -t shoppingweb .' 
+            }
+        }
+        stage('login to dockerhub') {
+            steps {
+                echo 'login to dockerhub'
+                sh 'docker login -u bharathca58 -p Ca@9900013937'
+            }
+        } 
+        stage('Tag the Image') {
+            steps {
+                echo 'Tag the Image'
+                sh 'docker tag  shoppingweb bharathca58/shoppingweb'
+            }
+        } 
+        stage('Deploy to docker hub') {
+            steps {
+                echo 'Deploy to docker hub'
+                sh 'docker push bharathca58/shoppingweb'
+            }
+        }
+        stage('Remove Docker conatiner') {
+            steps {
+                echo 'Remove Docker conatiner'
+                sh 'docker stop shoppingweb_conatiner || true'
+                sh 'docker rm shoppingweb_conatiner || true'
+            }
+        }        
+        stage('Run docker image') {
+            steps {
+                echo 'Deploy to docker hub'
+                sh 'docker run --name shopping_conatiner -d -p 81:80 bharathca58/shoppingweb'
+            }
+        }        
+    }
+}
